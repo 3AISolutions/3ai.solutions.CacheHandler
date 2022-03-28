@@ -18,13 +18,16 @@ namespace _3ai.solutions.CacheHandler
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
+                foreach (var item in _cacheHandlerService.CacheItemsToClear)
                 {
-                    var items = _cacheHandlerService.CacheItemsToClear;
-                }
-                catch
-                {
-                    //notify something? also time and 
+                    try
+                    {
+                        await _cacheHandlerService.Reset(item);
+                    }
+                    catch
+                    {
+                        //notify something? also time and 
+                    }
                 }
                 await Task.Delay(_waitTimeMilliseconds, stoppingToken);
             }

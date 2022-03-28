@@ -63,12 +63,12 @@ namespace _3ai.solutions.CacheHandler
         //}
 
         private readonly IMemoryCache _memoryCache;
-        private readonly CacheSettings _cacheSettings;
+        private readonly CacheHandlerOptions _cacheSettings;
         private readonly IServiceScopeFactory _scopeFactory;
 
         private readonly ConcurrentBag<string> keys = new();
 
-        public CacheHandlerService(IMemoryCache memoryCache, IOptions<CacheSettings> cacheSettings, IServiceScopeFactory scopeFactory)
+        public CacheHandlerService(IMemoryCache memoryCache, IOptions<CacheHandlerOptions> cacheSettings, IServiceScopeFactory scopeFactory)
         {
             _memoryCache = memoryCache;
             _cacheSettings = cacheSettings.Value;

@@ -1,40 +1,26 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace _3ai.solutions.CacheHandler
 {
     public class CacheHandlerHostedService : BackgroundService//, IAsyncDisposable
     {
-        public CacheHandlerHostedService()
+        private readonly CacheHandlerService _cacheHandlerService;
+        private readonly int _waitTimeMilliseconds;
+        public CacheHandlerHostedService(CacheHandlerService cacheHandlerService, IOptions<CacheHandlerOptions> option)
         {
-
+            _cacheHandlerService = cacheHandlerService;
+            _waitTimeMilliseconds = option.Value.BackgroundWaitTimeMilliseconds;
         }
 
-        //public Task StartAsync(CancellationToken cancellationToken = default)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task StopAsync(CancellationToken cancellationToken = default)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public void Dispose()
-        //{
-        //    StopAsync().Wait();
-        //    GC.SuppressFinalize(this);
-        //}
-
-        //public async ValueTask DisposeAsync()
-        //{
-        //    await StopAsync();
-        //    GC.SuppressFinalize(this);
-        //}
-
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            throw new NotImplementedException();
+            while (!stoppingToken.IsCancellationRequested)
+            {
+
+                await Task.Delay(_waitTimeMilliseconds, stoppingToken);
+            }
         }
     }
 }

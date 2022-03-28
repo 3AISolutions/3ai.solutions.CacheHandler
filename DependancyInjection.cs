@@ -6,9 +6,9 @@ namespace _3ai.solutions.CacheHandler
     public static class DependancyInjection
     {
      
-        public static IServiceCollection AddConfigurationServices(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddCacheHandlerServices(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<CacheSettings>(configuration.GetSection("CacheSettings"));
+            services.Configure<CacheHandlerOptions>(configuration.GetSection("CacheHandler"));
             services.AddSingleton<CacheHandlerService>();
             services.AddSingleton<CacheHandlerHostedService>();
             services.AddHostedService(provider => provider.GetService<CacheHandlerHostedService>());

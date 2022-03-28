@@ -22,25 +22,25 @@ namespace _3ai.solutions.CacheHandler
         {
             public string Key { get; set; } = string.Empty;
             public CacheExpiration CacheExpiration { get; set; }
-            //public string ObjectName
-            //{
-            //    get
-            //    {
-            //        return Key.Split(":").First();
-            //    }
-            //}
-            //public int PortalId
-            //{
-            //    get
-            //    {
-            //        if (int.TryParse(Key.Split(":").Last(), out int id))
-            //            return id;
-            //        else
-            //            return 0;
-            //    }
-            //}
-            //public Func<eCatalogContext, int, object> Func { get; set; }
-            //public Func<eCatalogContext, int, Task<object>> FuncAsync { get; set; }
+            public string ObjectName
+            {
+                get
+                {
+                    return Key.Split(":").First();
+                }
+            }
+            public int PortalId
+            {
+                get
+                {
+                    if (int.TryParse(Key.Split(":").Last(), out int id))
+                        return id;
+                    else
+                        return 0;
+                }
+            }
+            public Func<IServiceScopeFactory, int, object>? Func { get; set; }
+            public Func<IServiceScopeFactory, int, Task<object>>? FuncAsync { get; set; }
         }
 
         private ConcurrentDictionary<string, CacheItem> CacheItems { get; } = new();
@@ -57,10 +57,10 @@ namespace _3ai.solutions.CacheHandler
             if (!CacheItemsToClear.Contains(key)) CacheItemsToClear.Enqueue(key);
         }
 
-        //public IEnumerable<KeyValuePair<string, string>> GetCacheItemKeys()
-        //{
-        //    return CacheItems.Select(ci => new KeyValuePair<string, string>(ci.Value.ObjectName, ci.Value.PortalId.ToString()));
-        //}
+        public IEnumerable<KeyValuePair<string, string>> GetCacheItemKeys()
+        {
+            return CacheItems.Select(ci => new KeyValuePair<string, string>(ci.Value.ObjectName, ci.Value.PortalId.ToString()));
+        }
 
         private readonly IMemoryCache _memoryCache;
         private readonly CacheHandlerOptions _cacheSettings;
@@ -77,52 +77,52 @@ namespace _3ai.solutions.CacheHandler
 
         public IEnumerable<KeyValuePair<string, string>> Keys { get { return keys.Select(k => new KeyValuePair<string, string>(k.Split(":").First(), k.Split(":").Last())); } }
 
-        //public async Task Reset(string key)
-        //{
-        //    try
-        //    {
-        //        if (CacheItems.TryGetValue(key, out var cacheItem))
-        //        {
-        //            //using var scope = _scopeFactory.CreateScope();
-        //            //using var context = scope.ServiceProvider.GetRequiredService<eCatalogContext>();
-        //            //object itms;
-        //            //if (cacheItem.Func != null)
-        //            //    itms = cacheItem.Func(context, cacheItem.PortalId);
-        //            //else
-        //            //    itms = await cacheItem.FuncAsync(context, cacheItem.PortalId);
-        //            await Clear(key);
-        //            MemoryCacheEntryOptions memoryCacheEntryOptions = new();
-        //            switch (cacheItem.CacheExpiration)
-        //            {
-        //                case CacheExpiration.LongTerm:
-        //                    memoryCacheEntryOptions.SetAbsoluteExpiration(TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes));
-        //                    break;
-        //                case CacheExpiration.SortTerm:
-        //                    memoryCacheEntryOptions.SetAbsoluteExpiration(TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes));
-        //                    break;
-        //                case CacheExpiration.LongTermAutoReset:
-        //                    memoryCacheEntryOptions.RegisterPostEvictionCallback((key, value, reason, state) =>
-        //                    {
-        //                        AddCacheItemToReset(key.ToString());
-        //                    }).AddExpirationToken(new CancellationChangeToken(
-        //                        new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes)).Token));
-        //                    break;
-        //                case CacheExpiration.SortTermAutoReset:
-        //                    memoryCacheEntryOptions.RegisterPostEvictionCallback((key, value, reason, state) =>
-        //                    {
-        //                        AddCacheItemToReset(key.ToString());
-        //                    }).AddExpirationToken(new CancellationChangeToken(
-        //                        new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes)).Token));
-        //                    break;
-        //            }
-        //            _memoryCache.Set(key, itms, memoryCacheEntryOptions);
-        //        }
-        //    }
-        //    catch
-        //    {
-        //        //Log error
-        //    }
-        //}
+        public async Task Reset(string key)
+        {
+            if (CacheItems.TryGetValue(key, out var cacheItem))
+            {
+                object? itms = null;
+                if (cacheItem.Func != null)
+                    itms = cacheItem.Func(_scopeFactory, cacheItem.PortalId);
+                else if (cacheItem.FuncAsync != null)
+                    itms = await cacheItem.FuncAsync(_scopeFactory, cacheItem.PortalId);
+
+                await Clear(key);
+
+                if (itms is not null)
+                {
+                    MemoryCacheEntryOptions memoryCacheEntryOptions = new();
+                    switch (cacheItem.CacheExpiration)
+                    {
+                        case CacheExpiration.LongTerm:
+                            memoryCacheEntryOptions.SetAbsoluteExpiration(TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes));
+                            break;
+                        case CacheExpiration.SortTerm:
+                            memoryCacheEntryOptions.SetAbsoluteExpiration(TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes));
+                            break;
+                        case CacheExpiration.LongTermAutoReset:
+                            memoryCacheEntryOptions.RegisterPostEvictionCallback((key, value, reason, state) =>
+                            {
+                                var keyvalue = key.ToString();
+                                if (!string.IsNullOrEmpty(keyvalue))
+                                    AddCacheItemToReset(keyvalue);
+                            }).AddExpirationToken(new CancellationChangeToken(
+                                new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes)).Token));
+                            break;
+                        case CacheExpiration.SortTermAutoReset:
+                            memoryCacheEntryOptions.RegisterPostEvictionCallback((key, value, reason, state) =>
+                            {
+                                var keyvalue = key.ToString();
+                                if (!string.IsNullOrEmpty(keyvalue))
+                                    AddCacheItemToReset(keyvalue);
+                            }).AddExpirationToken(new CancellationChangeToken(
+                                new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes)).Token));
+                            break;
+                    }
+                    _memoryCache.Set(key, itms, memoryCacheEntryOptions);
+                }
+            }
+        }
 
         public Task Clear(string key)
         {
@@ -130,77 +130,83 @@ namespace _3ai.solutions.CacheHandler
             return Task.CompletedTask;
         }
 
-        //public TItem GetOrCreate<TItem>(string key, Func<eCatalogContext, int, object> func,
-        //                                    CacheExpiration cacheExpiration = CacheExpiration.Never,
-        //                                    eCatalogContext context = null,
-        //                                    int portalId = 0)
-        //{
-        //    return _memoryCache.GetOrCreate(key, cacheEntry =>
-        //    {
-        //        switch (cacheExpiration)
-        //        {
-        //            case CacheExpiration.LongTerm:
-        //                cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes);
-        //                break;
-        //            case CacheExpiration.SortTerm:
-        //                cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes);
-        //                break;
-        //            case CacheExpiration.LongTermAutoReset:
-        //                cacheEntry.RegisterPostEvictionCallback((key, value, reason, state) =>
-        //                {
-        //                    AddCacheItemToReset(key.ToString());
-        //                }).AddExpirationToken(new CancellationChangeToken(
-        //                    new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes)).Token));
-        //                break;
-        //            case CacheExpiration.SortTermAutoReset:
-        //                cacheEntry.RegisterPostEvictionCallback((key, value, reason, state) =>
-        //                {
-        //                    AddCacheItemToReset(key.ToString());
-        //                }).AddExpirationToken(new CancellationChangeToken(
-        //                    new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes)).Token));
-        //                break;
-        //        }
-        //        //if (!CacheItems.Keys.Contains(key))
-        //        //    CacheItems.TryAdd(key, new CacheItem { Key = key, Func = func, CacheExpiration = cacheExpiration });
-        //        return (TItem)func(context, portalId);
-        //    });
-        //}
+        public TItem GetOrCreate<TItem>(string key, Func<IServiceScopeFactory, int, object> func,
+                                            CacheExpiration cacheExpiration = CacheExpiration.Never,
+                                            int portalId = 0)
+        {
+            return _memoryCache.GetOrCreate(key, cacheEntry =>
+            {
+                switch (cacheExpiration)
+                {
+                    case CacheExpiration.LongTerm:
+                        cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes);
+                        break;
+                    case CacheExpiration.SortTerm:
+                        cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes);
+                        break;
+                    case CacheExpiration.LongTermAutoReset:
+                        cacheEntry.RegisterPostEvictionCallback((key, value, reason, state) =>
+                        {
+                            var keyvalue = key.ToString();
+                            if (!string.IsNullOrEmpty(keyvalue))
+                                AddCacheItemToReset(keyvalue);
+                        }).AddExpirationToken(new CancellationChangeToken(
+                            new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes)).Token));
+                        break;
+                    case CacheExpiration.SortTermAutoReset:
+                        cacheEntry.RegisterPostEvictionCallback((key, value, reason, state) =>
+                        {
+                            var keyvalue = key.ToString();
+                            if (!string.IsNullOrEmpty(keyvalue))
+                                AddCacheItemToReset(keyvalue);
+                        }).AddExpirationToken(new CancellationChangeToken(
+                            new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes)).Token));
+                        break;
+                }
+                if (!CacheItems.ContainsKey(key))
+                    CacheItems.TryAdd(key, new CacheItem { Key = key, Func = func, CacheExpiration = cacheExpiration });
+                return (TItem)func(_scopeFactory, portalId);
+            });
+        }
 
-        //public Task<TItem> GetOrCreateAsync<TItem>(string key, Func<eCatalogContext, int, Task<object>> func,
-        //                                            CacheExpiration cacheExpiration = CacheExpiration.Never,
-        //                                            eCatalogContext context = null,
-        //                                            int portalId = 0)
-        //{
-        //    return _memoryCache.GetOrCreateAsync(key, async cacheEntry =>
-        //    {
-        //        switch (cacheExpiration)
-        //        {
-        //            case CacheExpiration.LongTerm:
-        //                cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes);
-        //                break;
-        //            case CacheExpiration.SortTerm:
-        //                cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes);
-        //                break;
-        //            case CacheExpiration.LongTermAutoReset:
-        //                cacheEntry.RegisterPostEvictionCallback((key, value, reason, state) =>
-        //                {
-        //                    AddCacheItemToReset(key.ToString());
-        //                }).AddExpirationToken(new CancellationChangeToken(
-        //                    new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes)).Token));
-        //                break;
-        //            case CacheExpiration.SortTermAutoReset:
-        //                cacheEntry.RegisterPostEvictionCallback((key, value, reason, state) =>
-        //                {
-        //                    AddCacheItemToReset(key.ToString());
-        //                }).AddExpirationToken(new CancellationChangeToken(
-        //                    new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes)).Token));
-        //                break;
-        //        }
-        //        //if (!CacheItems.Keys.Contains(key))
-        //        //    CacheItems.TryAdd(key, new CacheItem { Key = key, FuncAsync = func, CacheExpiration = cacheExpiration });
-        //        return (TItem)await func(context, portalId);
-        //    });
-        //}
+        public Task<TItem> GetOrCreateAsync<TItem>(string key, Func<IServiceScopeFactory, int, Task<object>> func,
+                                                    CacheExpiration cacheExpiration = CacheExpiration.Never,
+                                                    int portalId = 0)
+        {
+            return _memoryCache.GetOrCreateAsync(key, async cacheEntry =>
+            {
+                switch (cacheExpiration)
+                {
+                    case CacheExpiration.LongTerm:
+                        cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes);
+                        break;
+                    case CacheExpiration.SortTerm:
+                        cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes);
+                        break;
+                    case CacheExpiration.LongTermAutoReset:
+                        cacheEntry.RegisterPostEvictionCallback((key, value, reason, state) =>
+                        {
+                            var keyvalue = key.ToString();
+                            if (!string.IsNullOrEmpty(keyvalue))
+                                AddCacheItemToReset(keyvalue);
+                        }).AddExpirationToken(new CancellationChangeToken(
+                            new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.LongTermExpiryMinutes)).Token));
+                        break;
+                    case CacheExpiration.SortTermAutoReset:
+                        cacheEntry.RegisterPostEvictionCallback((key, value, reason, state) =>
+                        {
+                            var keyvalue = key.ToString();
+                            if (!string.IsNullOrEmpty(keyvalue))
+                                AddCacheItemToReset(keyvalue);
+                        }).AddExpirationToken(new CancellationChangeToken(
+                            new CancellationTokenSource(TimeSpan.FromMinutes(_cacheSettings.ShortTermExpiryMinutes)).Token));
+                        break;
+                }
+                if (!CacheItems.ContainsKey(key))
+                    CacheItems.TryAdd(key, new CacheItem { Key = key, FuncAsync = func, CacheExpiration = cacheExpiration });
+                return (TItem)await func(_scopeFactory, portalId);
+            });
+        }
 
         public async Task<TItem> GetOrCreateAsync<TItem>(string key, Func<Task<TItem>> func, CacheExpiration cacheExpiration)
         {

@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace _3ai.solutions.CacheHandler
 {
-    public class CacheHandlerHostedService : BackgroundService//, IAsyncDisposable
+    public class CacheHandlerHostedService : BackgroundService
     {
         private readonly CacheHandlerService _cacheHandlerService;
         private readonly int _waitTimeMilliseconds;
+
         public CacheHandlerHostedService(CacheHandlerService cacheHandlerService, IOptions<CacheHandlerOptions> option)
         {
             _cacheHandlerService = cacheHandlerService;
@@ -18,7 +18,14 @@ namespace _3ai.solutions.CacheHandler
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-
+                try
+                {
+                    var items = _cacheHandlerService.CacheItemsToClear;
+                }
+                catch
+                {
+                    //notify something? also time and 
+                }
                 await Task.Delay(_waitTimeMilliseconds, stoppingToken);
             }
         }

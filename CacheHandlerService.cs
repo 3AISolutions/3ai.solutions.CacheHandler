@@ -33,13 +33,12 @@ namespace _3ai.solutions.CacheHandler
             _cacheItemsToReset = new();
         }
 
-        private Task Clear(string key)
+        private void Clear(string key)
         {
             _memoryCache.Remove(key);
-            return Task.CompletedTask;
         }
 
-        public async Task Reset(string key)
+        public async Task Reset(string key, bool resetDependancies = false)
         {
             if (_cacheItems.TryGetValue(key, out var cacheItem))
             {
@@ -49,12 +48,20 @@ namespace _3ai.solutions.CacheHandler
                 else if (cacheItem.FuncAsync != null)
                     itms = await cacheItem.FuncAsync(_scopeFactory, cacheItem.Params);
 
-                await Clear(key);
+                Clear(key);
 
                 if (itms is not null)
                 {
                     var memoryCacheEntryOptions = CreateCacheEntryOptions(cacheItem.CacheExpiration);
                     _memoryCache.Set(key, itms, memoryCacheEntryOptions);
+                }
+
+                if (resetDependancies)
+                {
+                    foreach (var item in cacheItem.RelatedKeys)
+                    {
+                        await Reset(item, true);
+                    }
                 }
             }
         }
@@ -129,10 +136,9 @@ namespace _3ai.solutions.CacheHandler
             if (!_cacheItemsToReset.Contains(key)) _cacheItemsToReset.Enqueue(key);
         }
 
-        public string? GetCacheKeyToReset()
+        public bool GetCacheKeyToReset(out string? key)
         {
-            _cacheItemsToReset.TryDequeue(out var key);
-            return key;
+            return _cacheItemsToReset.TryDequeue(out key);
         }
 
         public IEnumerable<string> CacheKeys
@@ -141,6 +147,11 @@ namespace _3ai.solutions.CacheHandler
             {
                 return _cacheItems.Select(c => c.Key);
             }
+        }
+
+        public IEnumerable<IEnumerable<string>> GetKeysWithRelated()
+        {
+            return _cacheItems.Select(c => c.Value.RelatedKeys.Concat(new[] { c.Key }));
         }
 
         public void CheckChanges(Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker changeTracker)

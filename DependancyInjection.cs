@@ -5,13 +5,17 @@ namespace _3ai.solutions.CacheHandler
 {
     public static class DependancyInjection
     {
-     
+
         public static IServiceCollection AddCacheHandlerServices(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<CacheHandlerOptions>(configuration.GetSection("CacheHandler"));
+            var cacheHandlerOptions = configuration.GetSection("CacheHandler").Get<CacheHandlerOptions>(); ;
+            services.Configure<CacheHandlerOptions>((c) => c = cacheHandlerOptions);
             services.AddSingleton<CacheHandlerService>();
-            services.AddSingleton<CacheHandlerHostedService>();
-            services.AddHostedService(provider => provider.GetService<CacheHandlerHostedService>());
+            if (cacheHandlerOptions.UseHostedService)
+            {
+                services.AddSingleton<CacheHandlerHostedService>();
+                services.AddHostedService(provider => provider.GetService<CacheHandlerHostedService>());
+            }
             return services;
         }
     }

@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.DependencyInjection;
@@ -154,26 +153,26 @@ namespace _3ai.solutions.CacheHandler
             return _cacheItems.Select(c => c.Value.RelatedKeys.Concat(new[] { c.Key }));
         }
 
-        public void CheckChanges(Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker changeTracker)
-        {
-            var auditedEntities = changeTracker.Entries()
-                                               .Where(p => p.State != EntityState.Unchanged);
+        //public void CheckChanges(Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker changeTracker)
+        //{
+        //    var auditedEntities = changeTracker.Entries()
+        //                                       .Where(p => p.State != EntityState.Unchanged);
 
-            List<string> keysToCacheClear = new();
-            foreach (var entity in auditedEntities)
-            {
-                var entityName = entity.Metadata.Name.Split(".").Last();
-                foreach (var key in CacheKeys)
-                {
-                    if (key.StartsWith(entityName))
-                        keysToCacheClear.Add(key);
-                }
-            }
-            foreach (var key in keysToCacheClear.Distinct())
-            {
-                AddCacheItemToReset(key);
-                //Clear(key);
-            }
-        }
+        //    List<string> keysToCacheClear = new();
+        //    foreach (var entity in auditedEntities)
+        //    {
+        //        var entityName = entity.Metadata.Name.Split(".").Last();
+        //        foreach (var key in CacheKeys)
+        //        {
+        //            if (key.StartsWith(entityName))
+        //                keysToCacheClear.Add(key);
+        //        }
+        //    }
+        //    foreach (var key in keysToCacheClear.Distinct())
+        //    {
+        //        AddCacheItemToReset(key);
+        //        //Clear(key);
+        //    }
+        //}
     }
 }

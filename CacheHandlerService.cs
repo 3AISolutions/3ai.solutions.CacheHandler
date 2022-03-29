@@ -23,9 +23,10 @@ namespace _3ai.solutions.CacheHandler
             if (!_cacheItemsToReset.Contains(key)) _cacheItemsToReset.Enqueue(key);
         }
 
-        public string[] GetCacheKeysToReset()
+        public string? GetCacheKeyToReset()
         {
-            return _cacheItemsToReset.ToArray();
+            _cacheItemsToReset.TryDequeue(out var key);
+            return key;
         }
 
         public IEnumerable<string> CacheKeys

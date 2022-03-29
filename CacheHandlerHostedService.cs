@@ -18,17 +18,20 @@ namespace _3ai.solutions.CacheHandler
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                foreach (var item in _cacheHandlerService.GetCacheKeysToReset())
+                string? item = _cacheHandlerService.GetCacheKeyToReset();
+                while (!string.IsNullOrEmpty(item))
                 {
                     try
                     {
                         await _cacheHandlerService.Reset(item);
+                        item = _cacheHandlerService.GetCacheKeyToReset();
                     }
                     catch
                     {
                         //notify something? also time and 
                     }
                 }
+
                 await Task.Delay(_waitTimeMilliseconds, stoppingToken);
             }
         }

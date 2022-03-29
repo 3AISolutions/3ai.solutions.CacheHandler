@@ -64,6 +64,17 @@ namespace _3ai.solutions.CacheHandler
                 }
             }
         }
+        public TItem? Get<TItem>(string key)
+        {
+            if (_memoryCache.TryGetValue<TItem>(key, out var value))
+                return value;
+            return default;
+        }
+
+        public void Set<TItem>(string key, TItem value)
+        {
+            _memoryCache.Set<TItem>(key, value);
+        }
 
         public TItem GetOrCreate<TItem>(string key, Func<IServiceScopeFactory, object[], object> func,
                                         List<string>? relatedKeys = null,

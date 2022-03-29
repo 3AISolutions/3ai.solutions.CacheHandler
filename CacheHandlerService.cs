@@ -18,25 +18,6 @@ namespace _3ai.solutions.CacheHandler
             SortTermAutoReset
         }
 
-        public void AddCacheItemToReset(string key)
-        {
-            if (!_cacheItemsToReset.Contains(key)) _cacheItemsToReset.Enqueue(key);
-        }
-
-        public string? GetCacheKeyToReset()
-        {
-            _cacheItemsToReset.TryDequeue(out var key);
-            return key;
-        }
-
-        public IEnumerable<string> CacheKeys
-        {
-            get
-            {
-                return _cacheItems.Select(c => c.Key);
-            }
-        }
-
         private readonly IMemoryCache _memoryCache;
         private readonly CacheHandlerOptions _cacheSettings;
         private readonly IServiceScopeFactory _scopeFactory;
@@ -141,6 +122,25 @@ namespace _3ai.solutions.CacheHandler
                     break;
             }
             return memoryCacheEntryOptions;
+        }
+
+        public void AddCacheItemToReset(string key)
+        {
+            if (!_cacheItemsToReset.Contains(key)) _cacheItemsToReset.Enqueue(key);
+        }
+
+        public string? GetCacheKeyToReset()
+        {
+            _cacheItemsToReset.TryDequeue(out var key);
+            return key;
+        }
+
+        public IEnumerable<string> CacheKeys
+        {
+            get
+            {
+                return _cacheItems.Select(c => c.Key);
+            }
         }
 
         public void CheckChanges(Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker changeTracker)

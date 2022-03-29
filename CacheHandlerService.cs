@@ -18,16 +18,14 @@ namespace _3ai.solutions.CacheHandler
             SortTermAutoReset
         }
 
-        public ConcurrentQueue<string> CacheItemsToReset { get; } = new();
         public void AddCacheItemToReset(string key)
         {
-            if (!CacheItemsToReset.Contains(key)) CacheItemsToReset.Enqueue(key);
+            if (!_cacheItemsToReset.Contains(key)) _cacheItemsToReset.Enqueue(key);
         }
 
-        private ConcurrentQueue<string> CacheItemsToClear { get; } = new();
-        public void AddCacheItemToClear(string key)
+        public string[] GetCacheKeysToReset()
         {
-            if (!CacheItemsToClear.Contains(key)) CacheItemsToClear.Enqueue(key);
+            return _cacheItemsToReset.ToArray();
         }
 
         public IEnumerable<string> CacheKeys
@@ -42,13 +40,15 @@ namespace _3ai.solutions.CacheHandler
         private readonly CacheHandlerOptions _cacheSettings;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ConcurrentDictionary<string, CacheItem> _cacheItems;
+        private readonly ConcurrentQueue<string> _cacheItemsToReset;
 
         public CacheHandlerService(IMemoryCache memoryCache, IOptions<CacheHandlerOptions> cacheSettings, IServiceScopeFactory scopeFactory)
         {
             _memoryCache = memoryCache;
             _cacheSettings = cacheSettings.Value;
             _scopeFactory = scopeFactory;
-            _cacheItems = new ConcurrentDictionary<string, CacheItem>();
+            _cacheItems = new();
+            _cacheItemsToReset = new();
         }
 
         private Task Clear(string key)
@@ -147,12 +147,11 @@ namespace _3ai.solutions.CacheHandler
             var auditedEntities = changeTracker.Entries()
                                                .Where(p => p.State != EntityState.Unchanged);
 
-            var allCacheKeys = CacheItemsToClear;
             List<string> keysToCacheClear = new();
             foreach (var entity in auditedEntities)
             {
                 var entityName = entity.Metadata.Name.Split(".").Last();
-                foreach (var key in allCacheKeys)
+                foreach (var key in CacheKeys)
                 {
                     if (key.StartsWith(entityName))
                         keysToCacheClear.Add(key);
@@ -160,7 +159,8 @@ namespace _3ai.solutions.CacheHandler
             }
             foreach (var key in keysToCacheClear.Distinct())
             {
-                Clear(key);
+                AddCacheItemToReset(key);
+                //Clear(key);
             }
         }
     }

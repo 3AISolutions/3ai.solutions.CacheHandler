@@ -18,7 +18,7 @@ namespace _3ai.solutions.CacheHandler
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                foreach (var item in _cacheHandlerService.CacheItemsToClear)
+                foreach (var item in _cacheHandlerService.GetCacheKeysToReset())
                 {
                     try
                     {

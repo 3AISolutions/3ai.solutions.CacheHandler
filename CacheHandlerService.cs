@@ -18,48 +18,40 @@ namespace _3ai.solutions.CacheHandler
             SortTermAutoReset
         }
 
-        public class CacheItem
-        {
-            public string Key { get; set; } = string.Empty;
-            public CacheExpiration CacheExpiration { get; set; }
-            public object[] Params { get; set; } = Array.Empty<object>();
-            public Func<IServiceScopeFactory, object[], object>? Func { get; set; }
-            public Func<IServiceScopeFactory, object[], Task<object>>? FuncAsync { get; set; }
-        }
-
-        private ConcurrentDictionary<string, CacheItem> CacheItems { get; } = new();
-
         public ConcurrentQueue<string> CacheItemsToReset { get; } = new();
         public void AddCacheItemToReset(string key)
         {
             if (!CacheItemsToReset.Contains(key)) CacheItemsToReset.Enqueue(key);
         }
 
-        public ConcurrentQueue<string> CacheItemsToClear { get; } = new();
+        private ConcurrentQueue<string> CacheItemsToClear { get; } = new();
         public void AddCacheItemToClear(string key)
         {
             if (!CacheItemsToClear.Contains(key)) CacheItemsToClear.Enqueue(key);
         }
 
-        //public IEnumerable<KeyValuePair<string, string>> GetCacheItemKeys()
-        //{
-        //    return CacheItems.Select(ci => new KeyValuePair<string, string>(ci.Value.ObjectName, ci.Value.PortalId.ToString()));
-        //}
+        public IEnumerable<string> CacheKeys
+        {
+            get
+            {
+                return _cacheItems.Select(c => c.Key);
+            }
+        }
 
         private readonly IMemoryCache _memoryCache;
         private readonly CacheHandlerOptions _cacheSettings;
         private readonly IServiceScopeFactory _scopeFactory;
-
-        private readonly ConcurrentBag<string> keys = new();
+        private readonly ConcurrentDictionary<string, CacheItem> _cacheItems;
 
         public CacheHandlerService(IMemoryCache memoryCache, IOptions<CacheHandlerOptions> cacheSettings, IServiceScopeFactory scopeFactory)
         {
             _memoryCache = memoryCache;
             _cacheSettings = cacheSettings.Value;
             _scopeFactory = scopeFactory;
+            _cacheItems = new ConcurrentDictionary<string, CacheItem>();
         }
 
-        public Task Clear(string key)
+        private Task Clear(string key)
         {
             _memoryCache.Remove(key);
             return Task.CompletedTask;
@@ -67,7 +59,7 @@ namespace _3ai.solutions.CacheHandler
 
         public async Task Reset(string key)
         {
-            if (CacheItems.TryGetValue(key, out var cacheItem))
+            if (_cacheItems.TryGetValue(key, out var cacheItem))
             {
                 object? itms = null;
                 if (cacheItem.Func != null)
@@ -86,6 +78,7 @@ namespace _3ai.solutions.CacheHandler
         }
 
         public TItem GetOrCreate<TItem>(string key, Func<IServiceScopeFactory, object[], object> func,
+                                        List<string>? relatedKeys = null,
                                         CacheExpiration cacheExpiration = CacheExpiration.Never,
                                         params object[] paramArray)
         {
@@ -94,13 +87,14 @@ namespace _3ai.solutions.CacheHandler
                 var memoryCacheEntryOptions = CreateCacheEntryOptions(cacheExpiration);
                 cacheEntry.SetOptions(memoryCacheEntryOptions);
 
-                if (!CacheItems.ContainsKey(key))
-                    CacheItems.TryAdd(key, new CacheItem { Key = key, Func = func, CacheExpiration = cacheExpiration });
+                if (!_cacheItems.ContainsKey(key))
+                    _cacheItems.TryAdd(key, new CacheItem(key, relatedKeys, cacheExpiration, func, paramArray));
                 return (TItem)func(_scopeFactory, paramArray);
             });
         }
 
-        public Task<TItem> GetOrCreateAsync<TItem>(string key, Func<IServiceScopeFactory, object[], Task<object>> func,
+        public Task<TItem> GetOrCreateAsync<TItem>(string key, Func<IServiceScopeFactory, object[], Task<object>> funcAsync,
+                                                   List<string>? relatedKeys = null,
                                                    CacheExpiration cacheExpiration = CacheExpiration.Never,
                                                    params object[] paramArray)
         {
@@ -109,9 +103,9 @@ namespace _3ai.solutions.CacheHandler
                 var memoryCacheEntryOptions = CreateCacheEntryOptions(cacheExpiration);
                 cacheEntry.SetOptions(memoryCacheEntryOptions);
 
-                if (!CacheItems.ContainsKey(key))
-                    CacheItems.TryAdd(key, new CacheItem { Key = key, FuncAsync = func, CacheExpiration = cacheExpiration });
-                return (TItem)await func(_scopeFactory, paramArray);
+                if (!_cacheItems.ContainsKey(key))
+                    _cacheItems.TryAdd(key, new CacheItem(key, relatedKeys, cacheExpiration, funcAsync, paramArray));
+                return (TItem)await funcAsync(_scopeFactory, paramArray);
             });
         }
 

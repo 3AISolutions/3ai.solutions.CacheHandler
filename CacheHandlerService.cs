@@ -109,10 +109,7 @@ namespace _3ai.solutions.CacheHandler
             });
         }
 
-        public TItem? GetOrCreateNullable<TItem>(string key, Func<IServiceScopeFactory, object[], object> func,
-                                List<string>? relatedKeys = null,
-                                CacheExpiration cacheExpiration = CacheExpiration.Never,
-                                params object[] paramArray)
+        public TItem? GetOrCreateNullable<TItem>(string key, Func<object?> func, CacheExpiration cacheExpiration = CacheExpiration.Never)
         {
             return _memoryCache.GetOrCreate(key, cacheEntry =>
             {
@@ -120,15 +117,12 @@ namespace _3ai.solutions.CacheHandler
                 cacheEntry.SetOptions(memoryCacheEntryOptions);
 
                 if (!_cacheItems.ContainsKey(key))
-                    _cacheItems.TryAdd(key, new CacheItem(key, relatedKeys, cacheExpiration, func, paramArray));
-                return new CachedItem<TItem>((TItem)func(_scopeFactory, paramArray));
+                    _cacheItems.TryAdd(key, new CacheItem());
+                return new CachedItem<TItem>((TItem?)func());
             }).Value;
         }
 
-        public async Task<TItem?> GetOrCreateNullableAsync<TItem>(string key, Func<IServiceScopeFactory, object[], Task<object>> funcAsync,
-                                           List<string>? relatedKeys = null,
-                                           CacheExpiration cacheExpiration = CacheExpiration.Never,
-                                           params object[] paramArray)
+        public async Task<TItem?> GetOrCreateNullableAsync<TItem>(string key, Func<Task<object?>> funcAsync, CacheExpiration cacheExpiration = CacheExpiration.Never)
         {
             return (await _memoryCache.GetOrCreateAsync(key, async cacheEntry =>
             {
@@ -136,8 +130,8 @@ namespace _3ai.solutions.CacheHandler
                 cacheEntry.SetOptions(memoryCacheEntryOptions);
 
                 if (!_cacheItems.ContainsKey(key))
-                    _cacheItems.TryAdd(key, new CacheItem(key, relatedKeys, cacheExpiration, funcAsync, paramArray));
-                return new CachedItem<TItem>((TItem)await funcAsync(_scopeFactory, paramArray));
+                    _cacheItems.TryAdd(key, new CacheItem());
+                return new CachedItem<TItem>((TItem?)await funcAsync());
             })).Value;
         }
 

@@ -2,7 +2,7 @@
 {
     internal class CachedItem<T>
     {
-        internal CachedItem(T value)
+        internal CachedItem(T? value)
         {
             Value = value;
         }

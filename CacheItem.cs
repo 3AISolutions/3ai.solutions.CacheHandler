@@ -5,8 +5,9 @@ namespace _3ai.solutions.CacheHandler
 {
     internal class CacheItem
     {
+        public CacheItem() { }
 
-        public CacheItem(string key, List<string>? relatedKeys, CacheExpiration cacheExpiration, Func<IServiceScopeFactory, object[], object> func, object[] funcParams)
+        public CacheItem(string key, List<string>? relatedKeys, CacheExpiration cacheExpiration, Func<IServiceScopeFactory, object[], object?> func, object[] funcParams)
         {
             Key = key;
             if (relatedKeys is not null) RelatedKeys = relatedKeys;
@@ -28,7 +29,7 @@ namespace _3ai.solutions.CacheHandler
         public List<string> RelatedKeys { get; init; } = new();
         public CacheExpiration CacheExpiration { get; init; }
         public object[] Params { get; init; } = Array.Empty<object>();
-        public Func<IServiceScopeFactory, object[], object>? Func { get; init; }
+        public Func<IServiceScopeFactory, object[], object?>? Func { get; init; }
         public Func<IServiceScopeFactory, object[], Task<object>>? FuncAsync { get; init; }
     }
 }

@@ -109,6 +109,38 @@ namespace _3ai.solutions.CacheHandler
             });
         }
 
+        public TItem? GetOrCreateNullable<TItem>(string key, Func<IServiceScopeFactory, object[], object> func,
+                                List<string>? relatedKeys = null,
+                                CacheExpiration cacheExpiration = CacheExpiration.Never,
+                                params object[] paramArray)
+        {
+            return _memoryCache.GetOrCreate(key, cacheEntry =>
+            {
+                var memoryCacheEntryOptions = CreateCacheEntryOptions(cacheExpiration);
+                cacheEntry.SetOptions(memoryCacheEntryOptions);
+
+                if (!_cacheItems.ContainsKey(key))
+                    _cacheItems.TryAdd(key, new CacheItem(key, relatedKeys, cacheExpiration, func, paramArray));
+                return new CachedItem<TItem>((TItem)func(_scopeFactory, paramArray));
+            }).Value;
+        }
+
+        public async Task<TItem?> GetOrCreateNullableAsync<TItem>(string key, Func<IServiceScopeFactory, object[], Task<object>> funcAsync,
+                                           List<string>? relatedKeys = null,
+                                           CacheExpiration cacheExpiration = CacheExpiration.Never,
+                                           params object[] paramArray)
+        {
+            return (await _memoryCache.GetOrCreateAsync(key, async cacheEntry =>
+            {
+                var memoryCacheEntryOptions = CreateCacheEntryOptions(cacheExpiration);
+                cacheEntry.SetOptions(memoryCacheEntryOptions);
+
+                if (!_cacheItems.ContainsKey(key))
+                    _cacheItems.TryAdd(key, new CacheItem(key, relatedKeys, cacheExpiration, funcAsync, paramArray));
+                return new CachedItem<TItem>((TItem)await funcAsync(_scopeFactory, paramArray));
+            })).Value;
+        }
+
         private MemoryCacheEntryOptions CreateCacheEntryOptions(CacheExpiration cacheExpiration)
         {
             MemoryCacheEntryOptions memoryCacheEntryOptions = new();

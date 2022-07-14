@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using static _3ai.solutions.CacheHandler.CacheHandlerService;
 
 namespace _3ai.solutions.CacheHandler
 {

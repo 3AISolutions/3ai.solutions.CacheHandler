@@ -113,7 +113,7 @@ namespace _3ai.solutions.CacheHandler
             }).Value;
         }
 
-        public async Task<TItem?> GetOrCreateNullableAsync<TItem>(string key, Func<Task<object?>> funcAsync, CacheExpiration cacheExpiration = CacheExpiration.Never)
+        public async Task<TItem?> GetOrCreateNullableAsync<TItem>(string key, Func<Task<object?>> funcAsync, CacheExpiration cacheExpiration = CacheExpiration.Never, List<string>? relatedKeys = null)
         {
             return (await _memoryCache.GetOrCreateAsync(key, async cacheEntry =>
             {
@@ -121,7 +121,7 @@ namespace _3ai.solutions.CacheHandler
                 cacheEntry.SetOptions(memoryCacheEntryOptions);
 
                 if (!_cacheItems.ContainsKey(key))
-                    _cacheItems.TryAdd(key, new CacheItem());
+                    _cacheItems.TryAdd(key, new CacheItem() { RelatedKeys = relatedKeys ?? new() });
                 return new CachedItem<TItem>((TItem?)await funcAsync());
             })).Value;
         }

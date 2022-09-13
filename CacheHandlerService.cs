@@ -28,14 +28,21 @@ namespace _3ai.solutions.CacheHandler
             _memoryCache.Remove(key);
         }
 
+        public void ClearByRelated(string key){
+            foreach(var item in _cacheItems.Values){
+                if(item.RelatedKeys.Contains(key))
+                    _memoryCache.Remove(item.Key);
+            }
+        }
+
         public async Task Reset(string key, bool resetDependancies = false)
         {
             if (_cacheItems.TryGetValue(key, out var cacheItem))
             {
                 object? itms = null;
-                if (cacheItem.Func != null)
+                if (cacheItem.Func is not null)
                     itms = cacheItem.Func(_scopeFactory, cacheItem.Params);
-                else if (cacheItem.FuncAsync != null)
+                else if (cacheItem.FuncAsync is not null)
                     itms = await cacheItem.FuncAsync(_scopeFactory, cacheItem.Params);
 
                 Clear(key);

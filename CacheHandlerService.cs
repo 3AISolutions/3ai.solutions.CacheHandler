@@ -128,7 +128,7 @@ namespace _3ai.solutions.CacheHandler
                 cacheEntry.SetOptions(memoryCacheEntryOptions);
 
                 if (!_cacheItems.ContainsKey(key))
-                    _cacheItems.TryAdd(key, new CacheItem() { RelatedKeys = relatedKeys ?? new() });
+                    _cacheItems.TryAdd(key, new CacheItem() { Key = key, RelatedKeys = relatedKeys ?? new() });
                 return new CachedItem<TItem>((TItem?)await funcAsync());
             })).Value;
         }

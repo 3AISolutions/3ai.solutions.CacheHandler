@@ -13,7 +13,7 @@ namespace _3ai.solutions.CacheHandler
             if (cacheHandlerOptions.UseHostedService)
             {
                 services.AddSingleton<CacheHandlerHostedService>();
-                services.AddHostedService(provider => provider.GetService<CacheHandlerHostedService>());
+                services.AddHostedService(provider => provider.GetRequiredService<CacheHandlerHostedService>());
             }
             return services;
         }

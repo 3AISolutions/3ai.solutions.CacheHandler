@@ -37,6 +37,15 @@ namespace _3ai.solutions.CacheHandler
             }
         }
 
+        public async Task ResetByRelatedAsync(string key)
+        {
+            foreach (var item in _cacheItems.Values)
+            {
+                if (item.RelatedKeys.Contains(key))
+                    await Reset(item.Key, true);
+            }
+        }
+
         public async Task Reset(string key, bool resetDependancies = false)
         {
             if (_cacheItems.TryGetValue(key, out var cacheItem))
